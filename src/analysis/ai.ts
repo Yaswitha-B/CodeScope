@@ -9,7 +9,7 @@ export function getImpactExplanation(dependencies: IDependency[]): string {
         return 'This file appears to have no direct dependents in the workspace. Changes may be low-risk.';
     }
 
-    const fileCount = new Set(dependencies.map(d => d.filePath)).size;
+    const fileCount = new Set(dependencies.map(d => d.dependentFilePath)).size;
 
     if (fileCount > 5) {
         return `Warning: This file is a high-impact dependency, affecting ${fileCount} other files. Changes here could have widespread effects. Recommend thorough testing.`;

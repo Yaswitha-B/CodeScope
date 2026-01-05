@@ -2,16 +2,6 @@ import * as vscode from 'vscode';
 import { IDependency } from '../analysis/dependencyGraph';
 import { getImpactExplanation } from '../analysis/ai';
 
-function getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-}
-
-
 export class DependencyViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codescope.dependencyView';
 
@@ -57,13 +47,20 @@ export class DependencyViewProvider implements vscode.WebviewViewProvider {
         const nonce = getNonce();
         const explanation = getImpactExplanation(dependencies);
 
-        const dependencyListHtml = dependencies.map(dep => `
-            <li class="dependency-item" data-file="${dep.filePath}" data-line="${dep.position.line}">
-                <span class="file-name">${dep.filePath.split(/[\\/]/).pop()}</span>
-                <span class="function-name">imports ${dep.importedFunction}</span>
-                <span class="file-path">${vscode.workspace.asRelativePath(dep.filePath)}</span>
-            </li>
-        `).join('');
+        const dependencyListHtml = dependencies.map(dep => {
+            const fileName = dep.dependentFilePath.split(/[\\/]/).pop();
+            const relation = dep.callerFunction 
+                ? `<span class="caller">${dep.callerFunction}</span> calls <span class="target">${dep.targetFunction}</span>`
+                : `File imports <span class="target">${dep.targetFunction}</span>`;
+
+            return `
+                <li class="dependency-item" data-file="${dep.dependentFilePath}" data-line="${dep.position.line}">
+                    <div class="file-name">${fileName}</div>
+                    <div class="relation">${relation}</div>
+                    <div class="file-path">${vscode.workspace.asRelativePath(dep.dependentFilePath)}</div>
+                </li>
+            `;
+        }).join('');
 
         return `<!DOCTYPE html>
             <html lang="en">
@@ -72,20 +69,23 @@ export class DependencyViewProvider implements vscode.WebviewViewProvider {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Dependency Inspector</title>
                 <style>
-                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-                    .explanation { padding: 10px; border-bottom: 1px solid #555; }
-                    ul { list-style: none; padding: 0; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ccc; }
+                    h3 { padding-left: 8px; }
+                    .explanation { padding: 10px; border-bottom: 1px solid #555; font-size: 0.9em; }
+                    ul { list-style: none; padding: 0; margin: 0; }
                     .dependency-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #333; }
                     .dependency-item:hover { background-color: #333; }
                     .file-name { font-weight: bold; }
-                    .function-name { color: #ccc; margin-left: 10px; }
+                    .relation { font-size: 0.9em; }
+                    .caller { color: #dcdcaa; }
+                    .target { color: #9cdcfe; }
                     .file-path { display: block; font-size: 0.8em; color: #888; }
                 </style>
             </head>
             <body>
-                <h3>${activeFile ? `Dependencies for ${activeFile.fsPath.split(/[\\/]/).pop()}` : 'CodeScope Inspector'}</h3>
+                <h3>${activeFile ? `Dependents of ${activeFile.fsPath.split(/[\\/]/).pop()}` : 'CodeScope Inspector'}</h3>
                 <div class="explanation">${explanation}</div>
-                <ul>${dependencyListHtml.length > 0 ? dependencyListHtml : '<li>No dependencies found in the workspace.</li>'}</ul>
+                <ul>${dependencyListHtml.length > 0 ? dependencyListHtml : '<li>No calling functions found in the workspace.</li>'}</ul>
                 <script nonce="${nonce}">
                     const vscode = acquireVsCodeApi();
                     document.querySelectorAll('.dependency-item').forEach(item => {
@@ -99,4 +99,13 @@ export class DependencyViewProvider implements vscode.WebviewViewProvider {
             </body>
             </html>`;
     }
+}
+
+function getNonce() {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
 }

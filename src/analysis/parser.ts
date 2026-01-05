@@ -20,3 +20,26 @@ export function parseFile(filePath: string, content: string): IFunctionInfo[] {
     visit(sourceFile);
     return functions;
 }
+
+/**
+ * Traverses up the AST from a given node to find the name of the enclosing function.
+ */
+export function findEnclosingFunction(node: ts.Node, sourceFile: ts.SourceFile): IFunctionInfo | undefined {
+    let current = node.parent;
+    while (current) {
+        if (ts.isFunctionDeclaration(current) || ts.isMethodDeclaration(current) || ts.isArrowFunction(current) || ts.isFunctionExpression(current)) {
+            let name = 'anonymous';
+            if (current.name && ts.isIdentifier(current.name)) {
+                name = current.name.text;
+            } else if (ts.isVariableDeclaration(current.parent.parent) && ts.isIdentifier(current.parent.parent.name)) {
+                // Handle const myFunction = () => { ... }
+                name = current.parent.parent.name.text;
+            }
+            
+            const pos = sourceFile.getLineAndCharacterOfPosition(current.getStart());
+            return { name, position: pos };
+        }
+        current = current.parent;
+    }
+    return undefined;
+}
