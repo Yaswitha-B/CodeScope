@@ -21,19 +21,34 @@ export function parseFile(filePath: string, content: string): IFunctionInfo[] {
     return functions;
 }
 
+export function findNodeAtOffset(sourceFile: ts.SourceFile, offset: number): ts.Node | undefined {
+    function find(node: ts.Node): ts.Node | undefined {
+        if (offset >= node.getStart() && offset <= node.getEnd()) {
+            return ts.forEachChild(node, find) || node;
+        }
+        return undefined;
+    }
+    return find(sourceFile);
+}
+
 /**
  * Traverses up the AST from a given node to find the name of the enclosing function.
  */
 export function findEnclosingFunction(node: ts.Node, sourceFile: ts.SourceFile): IFunctionInfo | undefined {
-    let current = node.parent;
+    let current: ts.Node | undefined = node;
     while (current) {
         if (ts.isFunctionDeclaration(current) || ts.isMethodDeclaration(current) || ts.isArrowFunction(current) || ts.isFunctionExpression(current)) {
             let name = 'anonymous';
-            if (current.name && ts.isIdentifier(current.name)) {
-                name = current.name.text;
-            } else if (ts.isVariableDeclaration(current.parent.parent) && ts.isIdentifier(current.parent.parent.name)) {
-                // Handle const myFunction = () => { ... }
-                name = current.parent.parent.name.text;
+            
+            // Check for direct name
+            if ((current as any).name && ts.isIdentifier((current as any).name)) {
+                name = (current as any).name.text;
+            } else {
+                // Handle: const foo = () => {}
+                let parent = current.parent;
+                if (parent && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+                    name = parent.name.text;
+                }
             }
             
             const pos = sourceFile.getLineAndCharacterOfPosition(current.getStart());
