@@ -1,26 +1,39 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { DependencyViewProvider } from './ui/dependencyView';
+import { buildDependencyGraph } from './analysis/dependencyGraph';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    const dependencyViewProvider = new DependencyViewProvider(context.extensionUri);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "codescope" is now active!');
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(DependencyViewProvider.viewType, dependencyViewProvider)
+    );
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('codescope.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from CodeScope!');
-	});
+    const inspectCommand = vscode.commands.registerCommand('codescope.inspect', async () => {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+            vscode.window.showInformationMessage('Open a file to inspect its dependencies.');
+            return;
+        }
 
-	context.subscriptions.push(disposable);
+        const fileUri = activeEditor.document.uri;
+        if (activeEditor.document.languageId !== 'typescript' && activeEditor.document.languageId !== 'javascript') {
+            vscode.window.showInformationMessage('CodeScope only supports JavaScript and TypeScript files.');
+            return;
+        }
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: 'CodeScope: Analyzing dependencies...',
+            cancellable: false
+        }, async (progress) => {
+            const graph = await buildDependencyGraph();
+            const dependencies = graph.getDependencies(fileUri.fsPath);
+            dependencyViewProvider.updateView(fileUri, dependencies);
+        });
+    });
+
+    context.subscriptions.push(inspectCommand);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

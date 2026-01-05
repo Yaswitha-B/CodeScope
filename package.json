@@ -1,40 +1,61 @@
 {
   "name": "codescope",
   "displayName": "CodeScope",
-  "description": "A developer tool that helps visualize function-level dependencies in a codebase, allowing developers to understand which parts of the system rely on a function before making changes.",
-  "version": "0.0.1",
+  "description": "Inspect function-level dependencies and potential impact of changes.",
+  "version": "0.1.0",
   "engines": {
-    "vscode": "^1.107.0"
+      "vscode": "^1.82.0"
   },
   "categories": [
-    "Other"
+      "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+      "onLanguage:typescript",
+      "onLanguage:javascript"
+  ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "codescope.helloWorld",
-        "title": "Hello World"
+      "commands": [
+          {
+              "command": "codescope.inspect",
+              "title": "CodeScope: Inspect File Dependencies"
+          }
+      ],
+      "keybindings": [
+          {
+              "command": "codescope.inspect",
+              "key": "ctrl+shift+d",
+              "mac": "cmd+shift+d"
+          }
+      ],
+      "viewsContainers": {
+          "activitybar": [
+              {
+                  "id": "codescope-view-container",
+                  "title": "CodeScope",
+                  "icon": "$(search-fuzzy)"
+              }
+          ]
+      },
+      "views": {
+          "codescope-view-container": [
+              {
+                  "id": "codescope.dependencyView",
+                  "name": "Dependency Inspector",
+                  "type": "webview"
+              }
+          ]
       }
-    ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
+      "vscode:prepublish": "npm run compile",
+      "compile": "tsc -p ./",
+      "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/vscode": "^1.107.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "typescript-eslint": "^8.48.1",
-    "eslint": "^9.39.1",
-    "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
-  }
+      "@types/vscode": "^1.82.0",
+      "@types/node": "16.x",
+      "typescript": "^5.1.6"
+  },
+  "license": "UNLICENSED"
 }
