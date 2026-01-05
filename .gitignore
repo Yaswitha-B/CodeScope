@@ -1,0 +1,18 @@
+# Node
+node_modules/
+
+# Compiled output
+out/
+dist/
+
+# VS Code
+.vscode-test/
+*.vsix
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
